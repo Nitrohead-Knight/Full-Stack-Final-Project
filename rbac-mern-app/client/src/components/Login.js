@@ -1,45 +1,93 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import knightLogo from '../knight-logo.png';
+import "../index.css";
 
-export default function Login({ setUser }) {
-  const [username, setUsername] = useState("");
+export default function Login() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
- // In Login.js
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const res = await axios.post("http://localhost:5000/api/users/login", { username, password });
-    localStorage.setItem("token", res.data.token);
-    const base64Url = res.data.token.split('.')[1];
-    const base64 = base64Url.replace('-', '+').replace('_', '/');
-    const payload = JSON.parse(window.atob(base64));
-    setUser({ username: payload.username, role: payload.role });
-    navigate("/dashboard");
-  } catch (error) {
-    setError("Incorrect password or username");
-  }
-};
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setError("");
 
+    // Get all registered users
+    const allUsers = JSON.parse(localStorage.getItem("allUsers")) || [];
+    
+    // Find user with matching email and password
+    const user = allUsers.find(
+      (u) => u.email === email && u.password === password
+    );
+
+    if (user) {
+      // Login successful - set current user
+      localStorage.setItem("token", `token-${user.email}`);
+      localStorage.setItem("userData", JSON.stringify({
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        memberSince: user.memberSince
+      }));
+      
+      // Redirect to dashboard
+      navigate("/dashboard");
+    } else {
+      setError("Invalid email or password");
+    }
+  };
 
   return (
-    <div style={formContainerStyle}>
-      <form style={formStyle} onSubmit={handleSubmit}>
-        <h2 style={headingStyle}>Login</h2>
-        <input style={inputStyle} placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
-        <input style={inputStyle} placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-        <button style={buttonStyle} type="submit">Login</button>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-      </form>
+    <div className="auth-page">
+      {/* Logo at Top */}
+      <div className="auth-logo">
+        <Link to="/">
+          <img src={knightLogo} alt="Knight Blog" className="auth-logo-img" />
+        </Link>
+      </div>
+
+      {/* Login Form Container */}
+      <div className="auth-container">
+        <h2 className="auth-title">Welcome Back</h2>
+        <p className="auth-subtitle">Sign in to your account</p>
+        
+        {error && <div className="auth-error">{error}</div>}
+        
+        <form onSubmit={handleLogin} className="auth-form">
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input
+              type="email"
+              className="form-input"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              type="password"
+              className="form-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+          
+          <button type="submit" className="auth-btn">
+            Sign In
+          </button>
+        </form>
+        
+        <p className="auth-footer">
+          Don't have an account? <Link to="/register" className="auth-link">Create one</Link>
+        </p>
+      </div>
     </div>
   );
 }
-
-const formContainerStyle = { display: "flex", justifyContent: "center", alignItems: "center" };
-const formStyle = { width: "350px", padding: "2rem", borderRadius: "10px", background: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,.09)" };
-const headingStyle = { fontFamily: "'Poppins', sans-serif", fontWeight: "700", textAlign: "center", marginBottom: "1rem" };
-const inputStyle = { width: "100%", padding: "0.8rem", margin: "0.5rem 0", borderRadius: "6px", border: "1px solid #ddd" };
-const buttonStyle = { width: "100%", padding: "0.8rem", background: "#3778C2", color: "#fff", borderRadius: "6px", border: "none", fontWeight: "bold", fontSize: "1rem", marginTop: "1rem" };
